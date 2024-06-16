@@ -76,9 +76,12 @@ class GameBoard:
                 n += self.size
             v_lines.append(line)
 
-        diagonal: list[tuple[int, int]] = [(n, n) for n in range(self.size)]
+        diagonal_right: list[tuple[int, int]] = [(n, n) for n in range(self.size)]
+        diagonal_left: list[tuple[int, int]] = [(self.size - 1, 0)]
+        while (last := diagonal_left[-1]) != (0, self.size - 1):
+            diagonal_left.append((last[0] - 1, last[1] + 1))
 
-        return h_lines + v_lines + [diagonal] + [list(reversed(diagonal))]
+        return h_lines + v_lines + [diagonal_right] + [diagonal_left]
 
     def _marker_from_player(self, marker_or_player: Optional[str | int]):
         """Returns a player's marker string if an integer is given, or the marker itself if a string is given."""
@@ -226,7 +229,7 @@ def play_game(game_rounds: int, **kwargs):
         board = GameBoard(**kwargs)
         winner = 'draw'
         game_turns = 1
-        print(f'\nBeginning round {game_round}.')
+        print(f'\n===== Round {game_round} of {game_rounds} =====')
         for player in itertools.cycle(board.mark_to_num):
             print(f'\nTurn {game_turns}: It\'s {player}\'s turn.')
             print(board)
@@ -244,9 +247,11 @@ def play_game(game_rounds: int, **kwargs):
         game_results[game_round] = winner
         if winner != 'draw':
             print(f'{winner} wins round {game_round}!')
+            print(board)
             sleep(1)
         else:
             print(f'Round {game_round} is a draw!')
+            print(board)
             sleep(1)
 
     return game_results
