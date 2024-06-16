@@ -37,6 +37,29 @@ class GameBoard:
     def __getitem__(self, item: int) -> list[str]:
         return self.board[item]
 
+    def _winning_lines(self) -> list[list[tuple[int, int]]]:
+        prod = list(itertools.product(range(self.size), range(self.size)))
+
+        h_lines: list[list[tuple[int, int]]] = []
+        for n in itertools.count(0, self.size):
+            if len(line := prod[n:n + self.size]) == self.size:
+                h_lines.append(line)
+                n += self.size
+            else:
+                break
+
+        v_lines: list[list[tuple[int, int]]] = []
+        for n, _ in enumerate(prod[0:self.size]):
+            line = []
+            while n < len(prod):
+                line.append(prod[n])
+                n += self.size
+            v_lines.append(line)
+        
+        diagonal: list[tuple[int, int]] = [(n, n) for n in range(self.size)]
+
+        return h_lines + v_lines + [diagonal] + [list(reversed(diagonal))]
+
     def _marker_from_player(self, marker_or_player: str | int):
         """Returns a player's marker string if an integer is given, or the marker itself if a string is given."""
         if not isinstance(marker_or_player, (int, str)):
@@ -59,7 +82,7 @@ class GameBoard:
 
     def find_occupied(self, marker_or_player: Optional[str | int] = None) -> list[tuple[int, int]]:
         """Looks for spaces on the board that are occupied by a marker, either a specific one, or any marker at all.
-        
+
         @marker_or_player: Either the index of a player, or the player's associated string itself.\
             If none is provided, will return any occupied spaces regardless of marker type.
         """
@@ -75,7 +98,13 @@ class GameBoard:
 
     def check_for_win(self):
         """Checks if there exists any horizontal, vertical, or diagonal lines of one marker type."""
-        raise NotImplementedError
+        # TODO: Finish!
+        for line in w:
+            mark = None
+            is_winner = True
+            for point in line:
+                if mark and (mark != (mark := b.get(*point))):
+                    break
 
     def place_at(self, row: int, col: int, marker_or_player: int | str) -> None:
         """Attempts to place something at the given position, raising an exception if a value already exists.
