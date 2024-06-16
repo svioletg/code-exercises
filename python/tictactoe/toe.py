@@ -31,9 +31,10 @@ class GameBoard:
         self.empty_board: list[list[str]] = [[' ' for _ in range(size)] for _ in range(size)]
         self.board = deepcopy(self.empty_board)
         self._winning_lines = self._get_winning_lines()
+        self.empty_spaces: int = self.size * self.size
 
     def __repr__(self) -> str:
-        col_header: str = '  ' + ''.join([f'  {n} ' for n in range(self.size)])
+        col_header: str = '  ' + ''.join([f'  {n} ' if n < 10 else f' {n} ' for n in range(self.size)])
         edge_bar = '  =' + ('====' * self.size)
         separator = '  |' + ('---|' * self.size)
 
@@ -109,7 +110,7 @@ class GameBoard:
     def str_to_point(self, point_string: str) -> tuple[int, int]:
         """Translates a valid point string (`"a3"`, `"3a"`, `"a 3"`, `"3 a"`, `"a, 3"`, `"3, a"`) into its equivalent
         tuple of integers.
-        
+
         e.g. `"a3"` -> `(0, 3)`
         """
         letter_reg: list[str] = re.findall(r"([a-z])", point_string)
@@ -129,8 +130,8 @@ class GameBoard:
 
     def load_board_string(self, board_string: str) -> None:
         """Replaces the current board state with the given board string."""
+        # TODO: Doesn't get the number of columns right!
         self._set_players(re.findall(r"P\[(.*?)\]", board_string)[0].split(','))
-        print(self.num_to_mark)
         self.board = [[' ' if n == '0' else self.num_to_mark[int(n)] for n in cast(list[str], r.split(','))] \
             for r in re.findall(r"R\[(.*?)\]", board_string)]
 
@@ -180,6 +181,7 @@ class GameBoard:
         if (existing := self.board[row][col]) != ' ':
             raise ValueError(f'Something is already placed here: {existing}')
         self.board[row][col] = marker
+        self.empty_spaces -= 1
 
     @classmethod
     def random_board(cls, *args, **kwargs) -> Self:
@@ -224,14 +226,14 @@ def play_game(game_rounds: int, **kwargs):
     @game_rounds: Any whole number that is more than 0.
     @board_size: Size of the board to play off of.
     """
-    game_results: dict[int, str] = {}
+    game_results: dict[int, dict[str, str | int]] = {}
     for game_round in range(1, game_rounds + 1):
         board = GameBoard(**kwargs)
-        winner = 'draw'
+        winner = '?'
         game_turns = 1
         print(f'\n===== Round {game_round} of {game_rounds} =====')
         for player in itertools.cycle(board.mark_to_num):
-            print(f'\nTurn {game_turns}: It\'s {player}\'s turn.')
+            print(f'\nTurn {game_turns}: {board.empty_spaces} spaces remain. It\'s {player}\'s turn.')
             print(board)
             while True:
                 try:
@@ -243,8 +245,11 @@ def play_game(game_rounds: int, **kwargs):
             if board.check_for_win():
                 winner = player
                 break
+            if board.empty_spaces == 0:
+                winner = 'draw'
+                break
             game_turns += 1
-        game_results[game_round] = winner
+        game_results[game_round] = {'winner': winner, 'turns': game_turns}
         if winner != 'draw':
             print(f'{winner} wins round {game_round}!')
             print(board)
@@ -253,6 +258,13 @@ def play_game(game_rounds: int, **kwargs):
             print(f'Round {game_round} is a draw!')
             print(board)
             sleep(1)
+
+    print('===== Final Results =====')
+
+    for game_round, result in game_results.items():
+        print(f'Round #{game_round}: ' +
+            (f'{result['winner']} won in {result['turns']} turns.' if result['winner'] != 'draw' \
+            else '...was a draw!'))
 
     return game_results
 
