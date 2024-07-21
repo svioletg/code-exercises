@@ -7,6 +7,8 @@ No third-party libraries may be used.
 
 import random
 import time
+import sys
+from copy import deepcopy
 from threading import Thread
 from typing import Callable
 
@@ -34,7 +36,7 @@ def cutlist(arr: list, parts: int) -> list[list]:
 #endregion UTILITY FUNCTIONS
 
 #region SORTING
-def swap_sort(to_sort: list, swap_call: Callable = lambda l: None) -> list:
+def bubble(to_sort: list) -> list:
     """Iterate over a list in pairs of the current (A) and next (B) item.
     If A is evaluated as *greater than* B, swap their places in the list. Move to the next pair.
 
@@ -45,41 +47,33 @@ def swap_sort(to_sort: list, swap_call: Callable = lambda l: None) -> list:
     while True:
         passes += 1
         swaps: int = 0
-        for n, (a, b) in enumerate(zip(sorted_list, sorted_list[1:])):
-            if a > b:
-                sorted_list.insert(n+1, sorted_list.pop(n))
+        for n, i in enumerate(sorted_list): # pylint: disable=unused-variable
+            if n + 1 == len(sorted_list):
+                break
+            if sorted_list[n] > sorted_list[n + 1]:
+                sorted_list.insert(n + 1, sorted_list.pop(n))
                 swaps += 1
-                swap_call(sorted_list)
         if swaps == 0:
             break
     return sorted_list
 #endregion SORTING
 
+def main(to_sort: list[int], sorter: Callable):
+    print()
+    print(sorter.__doc__.replace('    ', '  ') or sorter.__name__)
+    ta = time.perf_counter()
+    result = sorter(to_sort)
+    tb = time.perf_counter()
+    print(f'- Sorted {len(to_sort)} items in {tb - ta:.5f}s')
+    print('- Comparing between the sorted list and the output of `sorted()`, '+
+        f'they {"DO" if result == sorted(to_sort) else "DO NOT"} match.\n'
+    )
+
 if __name__ == '__main__':
-    unsorted: list[int] = [*range(1000)]
+    length: int = 50
+    if len(sys.argv) > 1:
+        length = int(sys.argv[1])
+    unsorted: list[int] = [*range(length)]
     random.shuffle(unsorted)
 
-    threads: list[dict[Thread, list]] = [Thread(target=task, args=(i,)) for i in range(2)]
-    unsorted_chunks = cutlist(len(threads))
-
-    th_results: dict[int, list] = {}
-
-    def task(n: int):
-        
-
-    for i in range(5):
-        threads[i] = Thread(target=task, args=(i,))
-
-    for n, t in threads.items():
-        t.start()
-
-    for n, t in threads.items():
-        t.join()
-
-    print(th_results)
-    exit()
-    ta = time.perf_counter()
-    result = swap_sort(unsorted)
-    tb = time.perf_counter()
-
-    print(f'- Sorted {len(unsorted)} items in {tb - ta:.5f}s')
+    main(unsorted, bubble)
