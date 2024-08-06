@@ -1,5 +1,6 @@
 import random
-from typing import Iterable, Optional, Self
+import re
+from typing import Iterable, Optional, Self, SupportsIndex
 
 class Card:
     """A basic playing card. Can be one of four suits - (h)earts, (d)iamonds, (s)pades, or (c)lubs -
@@ -14,9 +15,11 @@ class Card:
     def __init__(self, suit: str, value: int | str):
         """
         @suit: The first letter of this card's suit: `h` for hearts, `d` for diamonds, etc.
+            The full name can also be used; only the first letter of the given string is used
         @value: Number value, or a string if an Ace or face card.\
             Valid strings are `ace`, `jack`, `queen`, and `king`
         """
+        suit = suit[0]
         if suit not in self.suit_names:
             raise ValueError(f'Invalid suit given; valid suits: {', '.join(self.suit_names.keys())}')
         self.suit = suit
@@ -31,14 +34,45 @@ class Card:
     def __str__(self) -> str:
         return f'{str(self.value).title()} of {self.suit_names[self.suit].title()}'
 
+    @classmethod
+    def from_string(cls, string: str) -> Self:
+        """Create a `Card` from a string, formatted as `2 of hearts`, `ace of spades`, `7 of diamonds`, etc."""
+        if matches := re.findall(r"(\d|\w+) of (\w+)", string, flags=re.IGNORECASE):
+            return cls(*matches[0])
+        else:
+            raise ValueError('Invalid string format for Card.from_string()')
+
 class Deck(list):
     """Represents a deck of cards as a `list` of `Card` objects."""
     def __init__(self, cards: Optional[Iterable[Card]]=None):
         super().__init__(cards or [])
 
-    def shuffle(self):
+    def __getitem__(self, key: SupportsIndex | slice):
+        if isinstance(key, slice):
+            return Deck(list.__getitem__(self, key))
+        else:
+            return list.__getitem__(self, key)
+
+    def __mul__(self, value: SupportsIndex):
+        return Deck(list.__mul__(self, value))
+
+    def __str__(self) -> str:
+        return f'Deck: {', '.join(map(str, self))}'
+
+    def shuffle(self) -> None:
         """Shuffles this deck in-place."""
         random.shuffle(self)
+
+    def draw(self, amount: int=1) -> Card | list[Card]:
+        """Removes a given amount of `Card`s from the deck, and returns them in a list if `amount` is more than 1.
+        If `amount` is 1, which is its default value, a single `Card` is returned. `amount` cannot be lower than 1 or
+        greater than the deck's size.
+        """
+        if (amount < 1):
+            raise ValueError('amount cannot be less than 1')
+        if (amount > len(self)):
+            raise ValueError('amount cannot be greater than the deck\'s size')
+        return [self.pop(random.randint(0, len(self))) for i in range(amount)] if amount > 1 else self.pop(random.randint(0, len(self)))
 
     @classmethod
     def standard_52(cls) -> Self:
