@@ -15,7 +15,7 @@ from typing import Optional
 import cards
 
 class Player:
-    def __init__(self, hand: list[cards.Card], name: Optional[str]='Player'):
+    def __init__(self, hand: list[cards.FrenchSuitedCard], name: Optional[str]='Player'):
         self.name = name
         self.hand = hand
 
