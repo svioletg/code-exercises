@@ -20,12 +20,15 @@ class Player:
         self.hand = hand
 
 class Game:
+    """States of the game Blackjack:
+    Betting -> Dealing -> 
+    """
     DEALER: int = 0
     PLAYER: int = 1
 
-    def __init__(self, player_count: int):
+    def __init__(self, player_names: list[str]):
         self.deck = cards.Deck.standard_52() * 6
-        self.players = player_count
+        self.players: list[Player] = [Player(hand=[], name=name) for name in player_names]
         self.turn: int = self.DEALER
         self.round: int = 0
 
