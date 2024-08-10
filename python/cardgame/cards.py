@@ -1,6 +1,7 @@
 import random
 import re
-from typing import Iterable, Optional, Self, SupportsIndex
+from textwrap import dedent
+from typing import Optional, Self, Sequence, SupportsIndex, Type, TypeVar, Generic
 
 
 class BaseCard:
@@ -39,17 +40,22 @@ class BaseCard:
 
     def show(self) -> str:
         """Returns a string formatting this card into a basic ASCII visual representation."""
-        return f"""\
-|---|
-|{(value_display := self.value if isinstance(self.value, int) else self.value[0].upper()):<2} |
-| {self.suit[0].upper()} |
-| {value_display:>2}|
-|---|\
-"""
+        return dedent(f"""\
+            |---|
+            |{(value_display := self.value if isinstance(self.value, int) else self.value[0].upper()):<3}|
+            | {self.suit[0].upper()} |
+            |{value_display:>3}|
+            |---|
+            """).rstrip('\n')
+
+    @staticmethod
+    def show_line(cards: Sequence['BaseCard']) -> str:
+        """Returns a string formatting a collection of cards to be displayed in a horizontal line."""
+        return '\n'.join([' '.join([card_img.split('\n')[n] for card_img in [card.show() for card in cards]]) for n in range(5)])
 
     @classmethod
     def from_string(cls, string: str) -> Self:
-        """Create a `Card` from a string, formatted as `2 of hearts`, `ace of spades`, `7 of diamonds`, etc."""
+        """Create a `Card` from a string, formatted as `"[value] of [suit]"`, e.g. `2 of hearts`, `ace of spades`, `7 of diamonds`"""
         if matches := re.findall(r"(\d|\w+) of (\w+)", string, flags=re.IGNORECASE):
             return cls(*matches[0])
         else:
@@ -60,17 +66,12 @@ class FrenchSuitedCard(BaseCard):
     SUITS = ['hearts', 'diamonds', 'clubs', 'spades']
     VALUES = ['ace', *range(2, 11), 'jack', 'queen', 'king']
 
-    @classmethod
-    def from_string(cls, string: str) -> Self:
-        """Create a `Card` from a string, formatted as `2 of hearts`, `ace of spades`, `7 of diamonds`, etc."""
-        if matches := re.findall(r"(\d|\w+) of (\w+)", string, flags=re.IGNORECASE):
-            return cls(*matches[0])
-        else:
-            raise ValueError('Invalid string format for Card.from_string()')
 
-class Deck(list):
+T_CARD = TypeVar('T_CARD', bound=BaseCard)
+
+class Deck(Generic[T_CARD], list):
     """Represents a deck of cards as a `list` of `Card` objects."""
-    def __init__(self, cards: Optional[Iterable[BaseCard]]=None):
+    def __init__(self, cards: Optional[list[T_CARD]]=None):
         super().__init__(cards or [])
 
     def __getitem__(self, key: SupportsIndex | slice):
@@ -89,19 +90,16 @@ class Deck(list):
         """Shuffles this deck in-place."""
         random.shuffle(self)
 
-    def draw(self, amount: int=1) -> BaseCard | list[BaseCard]:
-        """Removes a given amount of `Card`s from the deck, and returns them in a list if `amount` is more than 1.
-        If `amount` is 1, which is its default value, a single `Card` is returned. `amount` cannot be lower than 1 or
-        greater than the deck's size.
-        """
+    def draw(self, amount: int=1) -> list[T_CARD]:
+        """Removes a given amount of `Card`s from the deck, and always returns them in a list, even if `amount` is 1."""
         if (amount < 1):
             raise ValueError('amount cannot be less than 1')
         if (amount > len(self)):
             raise ValueError('amount cannot be greater than the deck\'s size')
-        return [self.pop(random.randint(0, len(self))) for i in range(amount)] if amount > 1 else self.pop(random.randint(0, len(self)))
+        return [self.pop(random.randint(0, len(self))) for i in range(amount)]
 
     @classmethod
-    def standard_52(cls) -> Self:
+    def standard_52(cls: Type['Deck[FrenchSuitedCard]']) -> 'Deck[FrenchSuitedCard]':
         """Creates a standard 52-card deck, containing the numbers 2 through 10 of spades, hearts, clubs, and diamonds, as well as
             one jack, queen, king, and ace for each suit.
         """
