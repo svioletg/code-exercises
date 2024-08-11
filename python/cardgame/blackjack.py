@@ -11,14 +11,31 @@ The objective is to beat the dealer by having cards totalling as close to 21 as 
 Face cards are worth 10, and aces are either 1 or 11, whichever is most beneficial to the player at the time.
 """
 
+import os
+import platform
 from typing import Optional
+
 import cards
 
+def clear_screen() -> None:
+    if platform.system() == 'Windows':
+        os.system('cls')
+    else:
+        os.system('clear')
+
 class Player:
-    def __init__(self, hand: list[cards.FrenchSuitedCard], name: Optional[str]='Player'):
-        self.hand = hand
+    """Represents a player in the game of Blackjack."""
+    def __init__(self, hand: Optional[cards.Deck[cards.FrenchSuitedCard]]=None, name: str='Player'):
+        """
+        @hand: The player's hand to be initialized with, using the `Deck` class. Can be left empty.
+        @name: A string to refer to this player by.
+        """
+        self.hand = hand or cards.Deck()
         self.name = name
         self.bet: int = 0
+
+    def __repr__(self) -> str:
+        return f'Player(hand={self.hand}, name={self.name})'
 
 class Game:
     """States of the game Blackjack:
@@ -29,9 +46,8 @@ class Game:
 
     def __init__(self, player_names: list[str]):
         self.deck = cards.Deck.standard_52() * 6
-        self.dealer: Player = Player(hand=[], name='Dealer')
-        self.players: list[Player] = [Player(hand=[], name=name) for name in player_names]
-        self.round: int = 0
+        self.dealer: Player = Player(name='Dealer')
+        self.players: list[Player] = [Player(name=name) for name in player_names]
 
     def play(self) -> Player:
         """Begins the game loop. Does not return until the game has finished, returns the winning `Player`
@@ -52,19 +68,31 @@ class Game:
                     continue
                 player.bet = bet
                 break
-        print('Bets have been placed:', ', '.join([f'{player.name} with ${player.bet}' for player in self.players]))
 
         # Dealing
         print('Shuffling and dealing...')
         self.deck.shuffle()
-        self.dealer.hand.append(*self.deck.draw(2))
+        self.dealer.hand += self.deck.draw(2)
+        self.dealer.hand[1].face_up = False
         for player in self.players:
-            player.hand.append(*self.deck.draw(2))
+            drawn = self.deck.draw(2)
+            player.hand += drawn
+
+        clear_screen()
+        print('Bets placed:', ', '.join([f'{player.name} with ${player.bet}' for player in self.players]))
+        print('Players\' hands are as follows:\n' + '\n'.join([f'{player.name}:\n{player.hand.visual()}' for player in self.players]))
+        input('Press ENTER to begin.')
 
         # Players' Turns
-        print('Players\' hands are as follows:')
-        '\n'.join([f'{player.name}: {player.hand}'])
+        for player in self.players:
+            clear_screen()
+            print(f'It\'s {player.name}\'s turn.')
+            print(f'\nDealer\'s hand: {self.dealer.hand}\n{self.dealer.hand.visual()}')
+            print(f'\nYour hand: {player.hand}\n{player.hand.visual()}')
+        # Dealer's Turn
 
+        # Return winning player
+        return self.players[0]
 
 if __name__ == '__main__':
     winner = Game(['1', '2']).play()
