@@ -17,6 +17,9 @@ from typing import Optional
 
 import cards
 
+class BlackjackCard(cards.FrenchSuitedCard):
+    FACE_VALUES = {'ace': 1, 'jack': 10, 'queen': 10, 'king': 10}
+
 def clear_screen() -> None:
     if platform.system() == 'Windows':
         os.system('cls')
@@ -87,8 +90,9 @@ class Game:
         for player in self.players:
             clear_screen()
             print(f'It\'s {player.name}\'s turn.')
-            print(f'\nDealer\'s hand: {self.dealer.hand}\n{self.dealer.hand.visual()}')
+            print(f'\nDealer\'s hand: {self.dealer.hand} (A total of {sum(card.value for card in self.dealer.hand)})\n{self.dealer.hand.visual()}')
             print(f'\nYour hand: {player.hand}\n{player.hand.visual()}')
+
         # Dealer's Turn
 
         # Return winning player

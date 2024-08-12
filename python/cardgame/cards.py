@@ -1,9 +1,9 @@
+from itertools import chain
 import random
 import re
 from textwrap import dedent
 from typing import (Generic, Optional, Self, Sequence, SupportsIndex, Type,
                     TypeVar, overload)
-
 
 class BaseCard:
     """The base of any playing card. Meant for use in subclasses, not to be used on its own."""
@@ -11,11 +11,16 @@ class BaseCard:
     SUITS: list[str]
     """Valid suits for this type of card. e.g. `['hearts', 'diamonds', 'spades', 'clubs']` for French-suited cards, or
     `['red', 'blue', 'green', 'yellow', 'wild']` for something like UNO cards."""
-    VALUES: list[int | str]
-    """Valid values of this card, can be integers for actual numbers or strings for things like face cards.
 
-    The order of this list can be used for comparisons between two instances of this class.
-    Default less-than and greater-than behavior can be used by simply referencing the card's value directly (`my_card.value`)
+    NUMERAL_VALUES: list[int] = []
+    """A list of numeral values for this card type."""
+    FACE_VALUES: dict[str, int] = {}
+    """A dictionary of face-card names and their numeral values for this card type.
+        "Face cards" in this instance refers to anything that's not a regular number, so things like aces are counted here as well.
+    """
+    VALUES: dict[int | str, int] = dict(chain.from_iterable(d.items() for d in ({n:n for n in NUMERAL_VALUES}, FACE_VALUES)))
+    """Valid values of this card, either an integer for regular numbers or a string for face cards.
+    Automatically created from combining `NUMERAL_VALUES` and `FACE_VALUES`
     """
 
     def __init__(self, suit: str, value: int | str, face_up: bool=True):
@@ -81,7 +86,8 @@ class BaseCard:
 class FrenchSuitedCard(BaseCard):
     """A basic French-suited playing card."""
     SUITS = ['hearts', 'diamonds', 'clubs', 'spades']
-    VALUES = ['ace', *range(2, 11), 'jack', 'queen', 'king']
+    NUMERAL_VALUES = [*range(2, 11)]
+    FACE_VALUES = {'ace': 1, 'jack': 10, 'queen': 10, 'king': 10}
 
 T_CARD = TypeVar('T_CARD', bound=BaseCard)
 
@@ -101,7 +107,7 @@ class Deck(Generic[T_CARD], list):
     def __getitem__(self, key: int | slice) -> T_CARD | 'Deck[T_CARD]':
         if isinstance(key, slice):
             return Deck(list.__getitem__(self, key))
-        elif isinstance(key, int):
+        else:
             return list.__getitem__(self, key)
 
     def __mul__(self, value: SupportsIndex):
@@ -124,7 +130,7 @@ class Deck(Generic[T_CARD], list):
         if (amount > len(self)):
             raise ValueError('amount cannot be greater than the deck\'s size')
         cards: list[T_CARD] = []
-        for i in range(amount):
+        for i in range(amount): # pylint: disable=unused-variable
             card: T_CARD = self.pop(random.randint(0, len(self)))
             card.face_up = face_up or card.face_up
             cards.append(card)
