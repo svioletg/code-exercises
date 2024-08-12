@@ -1,24 +1,27 @@
-from itertools import chain
 import random
 import re
+from abc import ABC
+from itertools import chain
 from textwrap import dedent
-from typing import (Generic, Optional, Self, Sequence, SupportsIndex, Type,
+from typing import (Callable, Generic, Optional, Self, Sequence, SupportsIndex, Type,
                     TypeVar, overload)
 
-class BaseCard:
-    """The base of any playing card. Meant for use in subclasses, not to be used on its own."""
+class BaseCard(ABC):
+    """The base of any playing card. Meant for use in subclasses, not to be used on its own.
+
+    When subclassing `BaseCard`, you must define the `SUITS`, `NUMERAL_VALUES`, and `FACE_VALUES` attributes. `VALUES` is automatically created
+    by combining the two.
+    """
 
     SUITS: list[str]
     """Valid suits for this type of card. e.g. `['hearts', 'diamonds', 'spades', 'clubs']` for French-suited cards, or
     `['red', 'blue', 'green', 'yellow', 'wild']` for something like UNO cards."""
 
     NUMERAL_VALUES: list[int] = []
-    """A list of numeral values for this card type."""
-    FACE_VALUES: dict[str, int] = {}
-    """A dictionary of face-card names and their numeral values for this card type.
-        "Face cards" in this instance refers to anything that's not a regular number, so things like aces are counted here as well.
-    """
-    VALUES: dict[int | str, int] = dict(chain.from_iterable(d.items() for d in ({n:n for n in NUMERAL_VALUES}, FACE_VALUES)))
+    """A list of numeral cards for this card type."""
+    NAMED_VALUES: dict[str, int] = {}
+    """A dictionary of non-numeral card names and their associated values."""
+    VALUES: dict[int | str, int] = dict(chain.from_iterable(d.items() for d in ({n:n for n in NUMERAL_VALUES}, NAMED_VALUES)))
     """Valid values of this card, either an integer for regular numbers or a string for face cards.
     Automatically created from combining `NUMERAL_VALUES` and `FACE_VALUES`
     """
@@ -37,8 +40,14 @@ class BaseCard:
         if value not in self.VALUES:
             raise ValueError(f'Invalid card value ({value!r}); valid options: {', '.join(map(str, self.VALUES))}')
         self.value = value
+        """The value of this card as it would be shown physically. Use the `score` attribute to get what this card is actually worth in points."""
+        self.score: int = self.VALUES[self.value]
+        """The worth of this card in points. For the value that would be shown on a physical card, use `value`."""
 
         self.face_up = face_up
+        """Whether this card is currently facing up or not.
+        If `False`, any methods that show its value like `__str__` and `visual` will replace the card's suit and value with question marks.
+        """
 
     def __repr__(self) -> str:
         return f'Card(suit={self.suit}, value={self.value}, face_up={self.face_up})'
@@ -115,6 +124,15 @@ class Deck(Generic[T_CARD], list):
 
     def __str__(self) -> str:
         return f'{', '.join(map(str, self))}'
+
+    def point_total(self, map_func: Optional[Callable]=None) -> int:
+        """Returns the total score of all cards in this deck. Score of each card can be altered with a supplied function
+        that will be passed into `map()`. If a function is not given, `map()` is not used and the sum is calculated from
+        a simple generator.
+        @map_func: A function to apply to each card value before returning its score.
+        """
+        card_points: list[int] = [card.score for card in self]
+        return sum(map(map_func, card_points) if map_func else card_points)
 
     def shuffle(self) -> None:
         """Shuffles this deck in-place."""

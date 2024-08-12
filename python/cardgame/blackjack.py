@@ -17,14 +17,18 @@ from typing import Optional
 
 import cards
 
-class BlackjackCard(cards.FrenchSuitedCard):
-    FACE_VALUES = {'ace': 1, 'jack': 10, 'queen': 10, 'king': 10}
+# TODO: Figure out how to handle card point values with rules that can change it mid-game, this is completely stumping me
 
 def clear_screen() -> None:
+    """Clears the screen using the appropriate command for the current operating system."""
     if platform.system() == 'Windows':
         os.system('cls')
     else:
         os.system('clear')
+
+class BlackjackCard(cards.FrenchSuitedCard):
+    """`FrenchSuitedCard` subclass with the correct point values for Blackjack."""
+    FACE_VALUES = {'ace': 1, 'jack': 10, 'queen': 10, 'king': 10}
 
 class Player:
     """Represents a player in the game of Blackjack."""
@@ -51,6 +55,15 @@ class Game:
         self.deck = cards.Deck.standard_52() * 6
         self.dealer: Player = Player(name='Dealer')
         self.players: list[Player] = [Player(name=name) for name in player_names]
+    
+    def ace_value(self, cards: list[BlackjackCard]) -> int:
+        """Takes a colleciton of cards and returns the value 
+        
+        Based on the rules for Blackjack, an ace can be worth 1 or 11, depending on the hand and the player's choice.
+        For the dealer, the ace is automatically worth whichever will keep them at or under 21.
+        A player can decide which to count it as, as long as it remains at or under 21.
+        """
+        return 1
 
     def play(self) -> Player:
         """Begins the game loop. Does not return until the game has finished, returns the winning `Player`
@@ -90,7 +103,7 @@ class Game:
         for player in self.players:
             clear_screen()
             print(f'It\'s {player.name}\'s turn.')
-            print(f'\nDealer\'s hand: {self.dealer.hand} (A total of {sum(card.value for card in self.dealer.hand)})\n{self.dealer.hand.visual()}')
+            print(f'\nDealer\'s hand: {self.dealer.hand} (A total of {self.dealer.hand.point_total()})\n{self.dealer.hand.visual()}')
             print(f'\nYour hand: {player.hand}\n{player.hand.visual()}')
 
         # Dealer's Turn
